@@ -1,0 +1,183 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="renderer" content="webkit|ie-comp|ie-stand">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+<!--[if lt IE 9]>
+<script type="text/javascript" src="lib/html5shiv.js"></script>
+<script type="text/javascript" src="lib/respond.min.js"></script>
+<![endif]-->
+<link rel="stylesheet" type="text/css" href="__ADMIN__/static/h-ui/css/H-ui.min.css" />
+<link rel="stylesheet" type="text/css" href="__ADMIN__/static/h-ui.admin/css/H-ui.admin.css" />
+<link rel="stylesheet" type="text/css" href="__ADMIN__/lib/Hui-iconfont/1.0.8/iconfont.css" />
+<link rel="stylesheet" type="text/css" href="__ADMIN__/static/h-ui.admin/skin/default/skin.css" id="skin" />
+<link rel="stylesheet" type="text/css" href="__ADMIN__/static/h-ui.admin/css/style.css" />
+<!--[if IE 6]>
+<script type="text/javascript" src="lib/DD_belatedPNG_0.0.8a-min.js" ></script>
+<script>DD_belatedPNG.fix('*');</script>
+<![endif]-->
+<title>视频审核</title>
+<style type="text/css">
+	.box{
+		width: 1000px;
+		height: 400px;
+	}
+	.video{
+		position: relative;
+	}
+	.video .cont{
+		position: absolute;
+		left: 150px;
+		top: 100px;
+		width: 850px;
+		height: 240px;
+	}
+	.video .cont .photo{
+		width: 300px;
+		height: 250px;
+		float: left;
+		text-align: center;
+		border: 2px #e1e1e1 solid;
+	}
+	.video .cont .info{
+		margin-left: 30px;
+		width: 500px;
+		height: 400px;
+		float: left;
+	}
+	.video .audit{
+		position: absolute;
+		right: 30px;
+		top: 350px;
+		width: 100px;
+		height: 50px;
+	}
+	.video .audit a{
+		height: 30px;
+		line-height: 30px;
+		padding: 5px;
+		text-align: center;
+		border-color: #4898d5;
+		border-radius: 5px;
+	    background-color: #2e8ded;
+	    color: #fff;
+	}
+	.info .choosebtn{
+		display: block;
+		height: 30px;
+		width: 80px;
+		float: left;
+
+	}
+	.choosebtn span{
+		height: 30px;
+		padding: 5px;
+		line-height: 30px;
+		cursor: pointer;
+	}
+
+	.check{
+		display: none;
+	}
+
+	
+
+	.show{
+		display: block;
+	}
+
+</style>
+</head>
+<body>
+	<div class="box">
+		<div class="video">
+			<div class="cont">
+				<div class="photo">
+					<img src="{php $data.photo}" style="width:300px;height:180px;">
+					<div style="margin-top:10px;">{php $data.name}</div>
+				</div>
+				<div class="info">
+					<div>视频选集：</div>
+					{php foreach $data.videoinfo as $key1 => $value1}
+					<div class="choosebtn">
+						<span onclick="videoplay('{php $value1.name}','../video/play?url={php $data.url}'+'{php $value1.url}','360','400',this)">{php $value1.page}</span><i class="Hui-iconfont check" style="color:green;">&#xe6a7;</i>
+					</div>
+					{php /foreach}
+				</div>						
+			</div>
+			<div class="audit">
+				<a onclick="audit_ok(this,{php $video_id})">通过</a>
+				<a onclick="audit_no(this,{php $video_id})">不通过</a>
+			</div>
+		</div>
+	</div>
+
+<!--_footer 作为公共模版分离出去-->
+<script type="text/javascript" src="__ADMIN__/lib/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript" src="__ADMIN__/lib/layer/2.4/layer.js"></script>
+<script type="text/javascript" src="__ADMIN__/static/h-ui/js/H-ui.min.js"></script>
+<script type="text/javascript" src="__ADMIN__/static/h-ui.admin/js/H-ui.admin.js"></script> 
+<!--/_footer 作为公共模版分离出去-->
+<script type="text/javascript">
+
+
+function videoplay(title,url,w,h,obj){
+	$(obj).next().addClass("show");
+	layer_show(title,url,w,h);
+}
+function audit_ok(obj,id){
+	layer.confirm('当前视频确认审核通过？', {
+		btn: ['确认','取消'], 
+		shade: false,
+		closeBtn: 0
+	},
+	function(){
+		$.ajax({
+			type: 'GET',
+			url: 'audit_action/id/'+id+"/status/1/type/0",
+			dataType: 'json',
+			success: function(res){
+				if(res){
+					layer.msg('审核通过', {icon:6,time:1000});
+					layer_close();
+				}
+			},
+			error:function(data) {
+				console.log(data.msg);
+			},
+		});	
+		
+	});
+}
+function audit_no(obj,id){
+	layer.confirm('当前视频确认审核不通过？', {
+			btn: ['确认','取消'], 
+			shade: false,
+			closeBtn: 0
+		},
+		function(){		
+			layer.prompt({title: '原因', formType: 2}, function(text, index){
+				$.ajax({
+					type: 'GET',
+					url: 'audit_action/id/'+id+"/status/0/type/0/cause/"+text,
+					dataType: 'json',
+					success: function(res){
+						if(res){
+							layer.msg('未通过', {icon:5,time:1000});
+							layer_close();
+						}
+					},
+					error:function(res) {
+						console.log(res);
+					},
+				});				
+       		});
+		});
+}
+</script>
+<!--请在下方写此页面业务相关的脚本-->
+</body>
+</html>
