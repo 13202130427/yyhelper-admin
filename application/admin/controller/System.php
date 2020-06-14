@@ -2,6 +2,7 @@
 
 
 namespace app\admin\controller;
+use Redis;
 use think\Controller;
 use think\Db;
 use app\admin\model\AdminLevel as AdminLevelModel;
@@ -56,9 +57,22 @@ class System extends Controller{
 	    if(empty($accept_id)){
 	    	$this->error('请选择发送对象');
 	    }
-
+        //数据库操作
 	    $BroadcastModel = new BroadcastModel();
 	    $result = $BroadcastModel->sendBroadcast($manage_id,$accept_id,$data['title'],$data['info']);
+	    //给在线管理员进行广播提示
+        //开启redis
+        $redis = new Redis();
+        $redis->connect('127.0.0.1', 6379);
+        //寻找当前在线的管理员
+        foreach ( $accept_id as $key => $value){
+            $fd = $redis->get("uid_".$value);
+            if($fd){
+                //推送消息
+                broadcast_websocket($fd);
+            }
+        }
+        broadcast_websocket();
 
 	   if($result){
 	   		$this->success('发送成功!');

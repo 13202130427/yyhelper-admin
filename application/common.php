@@ -94,3 +94,21 @@ function alert($tip = "", $type = "", $url = "",$condition = "") {
         exit();
     }
 }
+
+/**
+ * JS发送websocket
+ * @param array $fd
+ * @param string $content
+ */
+function broadcast_websocket($fd = 0,$content = "您有新的信息"){
+    if($fd == 0){
+       return false;
+    }
+    $data =  '{"type":"broadcast","fd":"'.$fd.'","content":"'.$content.'"}';
+    $data = addslashes($data);
+    $js = "<script>";
+    $js .=  "wss = new WebSocket('wss://www.yyhelper.icu/ws');";
+    $js .= "wss.onopen = function (e) {wss.send('".$data."');}";
+    $js .= "</script>";
+    echo $js;
+}

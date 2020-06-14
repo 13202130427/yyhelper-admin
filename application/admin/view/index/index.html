@@ -49,7 +49,7 @@
 						<li><a href="admin/logout">退出</a></li>
 				</ul>
 			</li>
-				<li id="Hui-msg"> <a onclick="broadcast_look('信息','/admin/broadcast/broadcast_list','600','270')" title="消息"><span class="badge badge-danger">{php $broadcast == 0? '':$broadcast}</span><i class="Hui-iconfont" style="font-size:18px">&#xe68a;</i></a> </li>
+				<li id="Hui-msg"> <a onclick="broadcast_look('信息','/admin/broadcast/broadcast_list','600','270')" title="消息"><span class="badge badge-danger" id="broadcast_news"></span><i class="Hui-iconfont" style="font-size:18px">&#xe68a;</i></a> </li>
 				<li id="Hui-skin" class="dropDown right dropDown_hover"> <a href="javascript:;" class="dropDown_A" title="换肤"><i class="Hui-iconfont" style="font-size:18px">&#xe62a;</i></a>
 					<ul class="dropDown-menu menu radius box-shadow">
 						<li><a href="javascript:;" data-val="default" title="默认（黑色）">默认（黑色）</a></li>
@@ -148,6 +148,81 @@
 <!--请在下方写此页面业务相关的脚本-->
 <script type="text/javascript" src="__ADMIN__/lib/jquery.contextmenu/jquery.contextmenu.r2.js"></script>
 <script type="text/javascript">
+	var broadcast = {php $broadcast};
+	document.getElementById("broadcast_news").innerHTML= broadcast;
+	var websocket = null;
+	if('WebSocket' in window){
+		wss = new WebSocket('wss://www.yyhelper.icu/ws');
+	}else{
+		alert('当前浏览器不支持websocket');
+	}
+
+	wss.onopen = function (e) {
+		heartCheck.reset().start();      //心跳检测重置
+		var data = '{"type":"bind","id":'+{php $manage_id}+'}';
+		wss.send(data);
+		//alert('连接成功');
+	};
+
+	wss.onclose = function (e) {
+		var data = '{"type":"unbind","id":'+{php $manage_id}+'}';
+		wss.send(data);
+		//alert('连接关闭');
+	};
+	//接收第三方的消息推送
+	wss.onmessage = function (e) {
+		heartCheck.reset().start();      //心跳检测重置
+		var message = e.data;
+		if(message == 'pong'){
+			console.log("pong!");
+
+		}else{
+			//alert(e.data);
+			broadcast = broadcast+1;
+			var Notification = window.Notification || window.mozNotification || window.webkitNotification;
+			if(window.Notification){
+				if(Notification.permission === 'granted'){
+					new Notification('消息推送通知',{body:message});
+				}else{
+					Notification.requestPermission();
+				}
+			}document.getElementById("broadcast_news").innerHTML= broadcast;
+		}
+	}
+	wss.onerror = function(){
+		alert('websocket通信发生错误');
+	}
+	window.onbeforeunload = function () {
+		var data = '{"type":"unbind","id":'+{php $manage_id}+'}';
+		wss.send(data);
+		wss.close();
+
+	}
+
+	//心跳检测
+	var heartCheck = {
+		timeout: 3000,        //3分钟发一次心跳
+		timeoutObj: null,
+		serverTimeoutObj: null,
+		reset: function(){
+			clearTimeout(this.timeoutObj);
+			clearTimeout(this.serverTimeoutObj);
+			return this;
+		},
+		start: function(){
+			var self = this;
+			this.timeoutObj = setTimeout(function(){
+				//这里发送一个心跳，后端收到后，返回一个心跳消息，
+				//onmessage拿到返回的心跳就说明连接正常
+				var data = '{"type":"rec","action":"ping"}';
+				wss.send(data);
+				console.log("ping!");
+				self.serverTimeoutObj = setTimeout(function(){//如果超过一定时间还没重置，说明后端主动断开了
+					wss.close();     //如果onclose会执行reconnect，我们执行ws.close()就行了.如果直接执行reconnect 会触发onclose导致重连两次
+				}, self.timeout)
+			}, this.timeout)
+		}
+	}
 $(function(){
 	/*$("#min_title_list li").contextMenu('Huiadminmenu', {
 		bindings: {
@@ -165,6 +240,8 @@ $(function(){
 });
 /*信息*/
 function broadcast_look(title,url,w,h){
+	broadcast = 0;
+	document.getElementById("broadcast_news").innerHTML= broadcast;
 	layer_show(title,url,w,h);
 }
 /*个人信息*/

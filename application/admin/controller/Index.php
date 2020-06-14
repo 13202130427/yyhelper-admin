@@ -42,6 +42,7 @@ class Index extends Controller{
 
     $this->assign('level',$level);
     $this->assign('broadcast',$broadcast);
+    $this->assign('manage_id',$manage_id);
     return $this->fetch();
   }
    //后台欢迎页面
@@ -114,7 +115,6 @@ class Index extends Controller{
       alert('已登录请勿重复登录','jump','index');
     }
 
-    
     $data = input('post.');
     $this->check($data['vcode']);//验证码验证
 
